@@ -152,6 +152,7 @@ perform_uninstall() {
     gtk-update-icon-cache -f -t "$ICON_BASE_DIR" 2>/dev/null || true
   fi
 
+  echo -e "  User settings and encrypted license vault in ~/.local/share/OmniCore are safely preserved."
   echo -e "\n${GREEN}${BOLD}OmniCore Media Engine was successfully uninstalled from your system.${NC}"
   exit 0
 }
