@@ -330,8 +330,9 @@ if [ ! -f "$INSTALL_DIR/bin/ffmpeg" ] || [ ! -f "$INSTALL_DIR/bin/ffprobe" ]; th
   # Attempt package manager install if missing and running as root
   if [ ! -f "$INSTALL_DIR/bin/ffmpeg" ] || [ ! -f "$INSTALL_DIR/bin/ffprobe" ]; then
     if command -v apt-get >/dev/null 2>&1 && [ "$IS_ROOT" -eq 1 ]; then
-      apt-get update -qq 2>/dev/null || true
-      apt-get install -y -qq ffmpeg 2>/dev/null || true
+      echo -e "${BLUE}Installing FFmpeg & FFprobe media multiplexer via apt...${NC}"
+      DEBIAN_FRONTEND=noninteractive apt-get update -y 2>/dev/null || true
+      DEBIAN_FRONTEND=noninteractive apt-get install -y ffmpeg xz-utils 2>/dev/null || true
       SYS_FFMPEG=$(command -v ffmpeg 2>/dev/null || true)
       SYS_FFPROBE=$(command -v ffprobe 2>/dev/null || true)
       if [ -n "$SYS_FFMPEG" ]; then cp -L "$SYS_FFMPEG" "$INSTALL_DIR/bin/ffmpeg" 2>/dev/null || ln -sf "$SYS_FFMPEG" "$INSTALL_DIR/bin/ffmpeg" 2>/dev/null || true; fi
@@ -350,7 +351,14 @@ if [ ! -f "$INSTALL_DIR/bin/ffmpeg" ] || [ ! -f "$INSTALL_DIR/bin/ffprobe" ]; th
       wget -q -O "$TEMP_FFMPEG" "$FFMPEG_TAR_URL" 2>/dev/null || true
     fi
     if [ -f "$TEMP_FFMPEG" ]; then
-      tar -xJf "$TEMP_FFMPEG" --wildcards "*/bin/ffmpeg" "*/bin/ffprobe" --strip-components=2 -C "$INSTALL_DIR/bin" 2>/dev/null || true
+      if command -v xz >/dev/null 2>&1; then
+        tar -xJf "$TEMP_FFMPEG" --wildcards "*/bin/ffmpeg" "*/bin/ffprobe" --strip-components=2 -C "$INSTALL_DIR/bin" 2>/dev/null || true
+      fi
+      if [ ! -f "$INSTALL_DIR/bin/ffmpeg" ] && command -v python3 >/dev/null 2>&1; then
+        python3 -c "import tarfile; tf = tarfile.open('$TEMP_FFMPEG', 'r:*'); [tf.extract(m, '$INSTALL_DIR/bin') for m in tf.getmembers() if m.name.endswith('/ffmpeg') or m.name.endswith('/ffprobe')]" 2>/dev/null || true
+        find "$INSTALL_DIR/bin" -type f -name "ffmpeg" -exec mv -f {} "$INSTALL_DIR/bin/ffmpeg" \; 2>/dev/null || true
+        find "$INSTALL_DIR/bin" -type f -name "ffprobe" -exec mv -f {} "$INSTALL_DIR/bin/ffprobe" \; 2>/dev/null || true
+      fi
       rm -f "$TEMP_FFMPEG" 2>/dev/null || true
     fi
   fi
