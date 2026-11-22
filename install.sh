@@ -243,17 +243,6 @@ else
 
   if [ -f "$SCRIPT_DIR/payload.tar.gz" ]; then
     FOUND_TAR="$SCRIPT_DIR/payload.tar.gz"
-  elif compgen -G "${SCRIPT_DIR}/OmniCore-Media-Engine-*-linux-x64.tar.gz" > /dev/null 2>&1; then
-    FOUND_TAR=$(ls -1 "${SCRIPT_DIR}"/OmniCore-Media-Engine-*-linux-x64.tar.gz | sort -V | tail -n 1)
-  elif compgen -G "${SCRIPT_DIR}/OmniCore-Media-Engine-Setup-*-linux-x64.sh" > /dev/null 2>&1; then
-    SETUP_SH=$(ls -1 "${SCRIPT_DIR}"/OmniCore-Media-Engine-Setup-*-linux-x64.sh | sort -V | tail -n 1)
-    if [ "$SETUP_SH" != "$0" ]; then
-      SETUP_LINE=$(grep -a -n '^__ARCHIVE_FOLLOWS__' "$SETUP_SH" 2>/dev/null | head -n 1 | cut -d: -f1 || true)
-      if [ -n "$SETUP_LINE" ]; then
-        tail -n +$((SETUP_LINE + 1)) "$SETUP_SH" | tar --overwrite -xz -C "$INSTALL_DIR" 2>/dev/null || tail -n +$((SETUP_LINE + 1)) "$SETUP_SH" | tar -xz -C "$INSTALL_DIR"
-        FOUND_TAR="extracted_from_sibling_setup"
-      fi
-    fi
   elif [ -d "$SCRIPT_DIR/../../engine-desktop/bin/Release/net8.0/linux-x64/publish" ]; then
     cp -r "$SCRIPT_DIR/../../engine-desktop/bin/Release/net8.0/linux-x64/publish/"* "$INSTALL_DIR/"
     if [ -d "$SCRIPT_DIR/../../dist" ]; then
@@ -267,7 +256,7 @@ else
     FOUND_TAR="copied_from_source"
   fi
 
-  if [ -n "$FOUND_TAR" ] && [ "$FOUND_TAR" != "extracted_from_sibling_setup" ] && [ "$FOUND_TAR" != "copied_from_source" ]; then
+  if [ -n "$FOUND_TAR" ] && [ "$FOUND_TAR" != "copied_from_source" ]; then
     tar --overwrite -xz -f "$FOUND_TAR" -C "$INSTALL_DIR" 2>/dev/null || tar -xz -f "$FOUND_TAR" -C "$INSTALL_DIR"
   elif [ -z "$FOUND_TAR" ]; then
     # Standalone script execution: download application payload automatically from GitHub Releases
