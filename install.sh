@@ -309,11 +309,11 @@ if [ ! -f "$INSTALL_DIR/bin/yt-dlp" ] && [ ! -f "$INSTALL_DIR/yt-dlp" ]; then
   echo -e "${BLUE}Pre-deploying yt-dlp media engine binary...${NC}"
   YTDLP_DL_OK=0
   if command -v curl >/dev/null 2>&1; then
-    if curl -sSL -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp" -o "$INSTALL_DIR/bin/yt-dlp"; then
+    if curl -sSL -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux" -o "$INSTALL_DIR/bin/yt-dlp" || curl -sSL -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp" -o "$INSTALL_DIR/bin/yt-dlp"; then
       YTDLP_DL_OK=1
     fi
   elif command -v wget >/dev/null 2>&1; then
-    if wget -q -O "$INSTALL_DIR/bin/yt-dlp" "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"; then
+    if wget -q -O "$INSTALL_DIR/bin/yt-dlp" "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux" || wget -q -O "$INSTALL_DIR/bin/yt-dlp" "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"; then
       YTDLP_DL_OK=1
     fi
   fi
