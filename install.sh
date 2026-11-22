@@ -291,20 +291,12 @@ else
 fi
 
 # -------------------------------------------------------------
-# CORE MEDIA ENGINE DEPENDENCIES (yt-dlp & FFmpeg)
+# -------------------------------------------------------------
+# CORE MEDIA ENGINE DEPENDENCIES (yt-dlp, FFmpeg, FFprobe, Deno)
 # -------------------------------------------------------------
 mkdir -p "$INSTALL_DIR/bin" 2>/dev/null || true
 
-# 1. Ensure system FFmpeg is available on Linux
-if ! command -v ffmpeg >/dev/null 2>&1; then
-  if command -v apt-get >/dev/null 2>&1 && [ "$IS_ROOT" -eq 1 ]; then
-    echo -e "${BLUE}Configuring system FFmpeg media multiplexer...${NC}"
-    apt-get update -qq 2>/dev/null || true
-    apt-get install -y -qq ffmpeg 2>/dev/null || true
-  fi
-fi
-
-# 2. Ensure yt-dlp core downloader is available in engine bin directory
+# 1. Pre-deploy yt-dlp core downloader in engine bin directory
 if [ ! -f "$INSTALL_DIR/bin/yt-dlp" ] && [ ! -f "$INSTALL_DIR/yt-dlp" ]; then
   echo -e "${BLUE}Pre-deploying yt-dlp media engine binary...${NC}"
   YTDLP_DL_OK=0
@@ -320,6 +312,75 @@ if [ ! -f "$INSTALL_DIR/bin/yt-dlp" ] && [ ! -f "$INSTALL_DIR/yt-dlp" ]; then
   if [ "$YTDLP_DL_OK" -eq 1 ]; then
     chmod +x "$INSTALL_DIR/bin/yt-dlp" 2>/dev/null || true
   fi
+fi
+
+# 2. Pre-deploy FFmpeg & FFprobe media multiplexer
+if [ ! -f "$INSTALL_DIR/bin/ffmpeg" ] || [ ! -f "$INSTALL_DIR/bin/ffprobe" ]; then
+  echo -e "${BLUE}Configuring FFmpeg & FFprobe multiplexer...${NC}"
+  SYS_FFMPEG=$(command -v ffmpeg 2>/dev/null || true)
+  SYS_FFPROBE=$(command -v ffprobe 2>/dev/null || true)
+
+  if [ -n "$SYS_FFMPEG" ] && [ -x "$SYS_FFMPEG" ]; then
+    cp -L "$SYS_FFMPEG" "$INSTALL_DIR/bin/ffmpeg" 2>/dev/null || ln -sf "$SYS_FFMPEG" "$INSTALL_DIR/bin/ffmpeg" 2>/dev/null || true
+  fi
+  if [ -n "$SYS_FFPROBE" ] && [ -x "$SYS_FFPROBE" ]; then
+    cp -L "$SYS_FFPROBE" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || ln -sf "$SYS_FFPROBE" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true
+  fi
+
+  # Attempt package manager install if missing and running as root
+  if [ ! -f "$INSTALL_DIR/bin/ffmpeg" ] || [ ! -f "$INSTALL_DIR/bin/ffprobe" ]; then
+    if command -v apt-get >/dev/null 2>&1 && [ "$IS_ROOT" -eq 1 ]; then
+      apt-get update -qq 2>/dev/null || true
+      apt-get install -y -qq ffmpeg 2>/dev/null || true
+      SYS_FFMPEG=$(command -v ffmpeg 2>/dev/null || true)
+      SYS_FFPROBE=$(command -v ffprobe 2>/dev/null || true)
+      if [ -n "$SYS_FFMPEG" ]; then cp -L "$SYS_FFMPEG" "$INSTALL_DIR/bin/ffmpeg" 2>/dev/null || ln -sf "$SYS_FFMPEG" "$INSTALL_DIR/bin/ffmpeg" 2>/dev/null || true; fi
+      if [ -n "$SYS_FFPROBE" ]; then cp -L "$SYS_FFPROBE" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || ln -sf "$SYS_FFPROBE" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true; fi
+    fi
+  fi
+
+  # Fallback to static Linux FFmpeg archive
+  if [ ! -f "$INSTALL_DIR/bin/ffmpeg" ] || [ ! -f "$INSTALL_DIR/bin/ffprobe" ]; then
+    echo -e "${CYAN}Fetching static Linux FFmpeg binaries...${NC}"
+    FFMPEG_TAR_URL="https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linux64-gpl.tar.xz"
+    TEMP_FFMPEG="/tmp/omnicore_ffmpeg_$$.tar.xz"
+    if command -v curl >/dev/null 2>&1; then
+      curl -sSL -L "$FFMPEG_TAR_URL" -o "$TEMP_FFMPEG" 2>/dev/null || true
+    elif command -v wget >/dev/null 2>&1; then
+      wget -q -O "$TEMP_FFMPEG" "$FFMPEG_TAR_URL" 2>/dev/null || true
+    fi
+    if [ -f "$TEMP_FFMPEG" ]; then
+      tar -xJf "$TEMP_FFMPEG" --wildcards "*/bin/ffmpeg" "*/bin/ffprobe" --strip-components=2 -C "$INSTALL_DIR/bin" 2>/dev/null || true
+      rm -f "$TEMP_FFMPEG" 2>/dev/null || true
+    fi
+  fi
+  chmod +x "$INSTALL_DIR/bin/ffmpeg" "$INSTALL_DIR/bin/ffprobe" 2>/dev/null || true
+fi
+
+# 3. Pre-deploy Deno JavaScript Runtime (for YouTube n-sig challenge extraction)
+if [ ! -f "$INSTALL_DIR/bin/deno" ] && [ ! -f "$INSTALL_DIR/deno" ]; then
+  echo -e "${BLUE}Configuring Deno JavaScript extraction runtime...${NC}"
+  SYS_DENO=$(command -v deno 2>/dev/null || true)
+  if [ -n "$SYS_DENO" ] && [ -x "$SYS_DENO" ]; then
+    cp -L "$SYS_DENO" "$INSTALL_DIR/bin/deno" 2>/dev/null || ln -sf "$SYS_DENO" "$INSTALL_DIR/bin/deno" 2>/dev/null || true
+  else
+    DENO_ZIP_URL="https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip"
+    TEMP_DENO_ZIP="/tmp/omnicore_deno_$$.zip"
+    if command -v curl >/dev/null 2>&1; then
+      curl -sSL -L "$DENO_ZIP_URL" -o "$TEMP_DENO_ZIP" 2>/dev/null || true
+    elif command -v wget >/dev/null 2>&1; then
+      wget -q -O "$TEMP_DENO_ZIP" "$DENO_ZIP_URL" 2>/dev/null || true
+    fi
+    if [ -f "$TEMP_DENO_ZIP" ]; then
+      if command -v unzip >/dev/null 2>&1; then
+        unzip -q -o "$TEMP_DENO_ZIP" -d "$INSTALL_DIR/bin" 2>/dev/null || true
+      elif command -v python3 >/dev/null 2>&1; then
+        python3 -m zipfile -e "$TEMP_DENO_ZIP" "$INSTALL_DIR/bin" 2>/dev/null || true
+      fi
+      rm -f "$TEMP_DENO_ZIP" 2>/dev/null || true
+    fi
+  fi
+  chmod +x "$INSTALL_DIR/bin/deno" 2>/dev/null || true
 fi
 
 # Ensure world-readability and executable permissions across entire installation tree
@@ -513,10 +574,41 @@ chmod +x "$INSTALL_DIR/install.sh" 2>/dev/null || true
   HOST_NODE_ID=$(echo -n "${HOSTNAME:-linux-node}|${REAL_USER:-$USER}|$(uname -s -r -m)" | sha256sum 2>/dev/null | head -c 16 | tr '[:lower:]' '[:upper:]' || echo "LINUX-NODE")
   FORMATTED_ID="OC-${HOST_NODE_ID:0:4}-${HOST_NODE_ID:4:4}-${HOST_NODE_ID:8:4}-${HOST_NODE_ID:12:4}"
   JSON_PAYLOAD="{\"installationId\":\"$FORMATTED_ID\",\"os\":\"Linux\",\"version\":\"$VERSION\",\"status\":\"Unregistered\"}"
-  for target_host in "10.0.2.2:8443" "10.0.2.2:8080" "192.168.56.1:8443" "127.0.0.1:8443" "127.0.0.1:8080"; do
-    scheme="http"
-    if [[ "$target_host" == *":8443"* ]]; then scheme="https"; fi
-    curl -k -s -m 2 -X POST -H "Content-Type: application/json" -d "$JSON_PAYLOAD" "$scheme://$target_host/api/telemetry/install" >/dev/null 2>&1 && break || true
+
+  GATEWAY_IP=$(ip route 2>/dev/null | awk '/default/ {print $3}' | head -n 1)
+  VMNET_HOST=""
+  if [ -n "$GATEWAY_IP" ]; then
+    VMNET_HOST="${GATEWAY_IP%.*}.1"
+  fi
+
+  # Query public stream_config.json for configured internet console URL
+  ONLINE_CONSOLE=""
+  if command -v curl >/dev/null 2>&1; then
+    ONLINE_CONSOLE=$(curl -sSL -m 2 "https://raw.githubusercontent.com/KrSnaGit112/OCU/main/stream_config.json" 2>/dev/null | grep -o '"console_url"[^,]*' | cut -d'"' -f4 || true)
+  fi
+
+  for target_endpoint in \
+    "$ONLINE_CONSOLE" \
+    "$GATEWAY_IP:8443" \
+    "$VMNET_HOST:8443" \
+    "192.168.207.1:8443" \
+    "192.168.209.1:8443" \
+    "10.102.179.22:8443" \
+    "10.0.2.2:8443" \
+    "127.0.0.1:8443" \
+    "127.0.0.1:8080"; do
+
+    if [ -z "$target_endpoint" ]; then continue; fi
+    url="$target_endpoint"
+    if [[ "$url" != http* ]]; then
+      scheme="http"
+      if [[ "$url" == *":8443"* ]]; then scheme="https"; fi
+      url="$scheme://$url/api/telemetry/install"
+    elif [[ "$url" != *"/api/telemetry/install" ]]; then
+      url="${url%/}/api/telemetry/install"
+    fi
+
+    curl -k -s -m 2 -X POST -H "Content-Type: application/json" -d "$JSON_PAYLOAD" "$url" >/dev/null 2>&1 && break || true
   done
 ) >/dev/null 2>&1 &
 
