@@ -11,7 +11,7 @@ APP_NAME="OmniCore Media Engine"
 APP_ID="com.omnicore.engine"
 APP_ID_LEGACY="com.krsna.engine"
 EXT_ID="odcahhkipbkgkcljfnolkaiibomhpfij"
-VERSION="1.0.0"
+VERSION="1.0.13"
 
 # ANSI Color Codes
 RED='\033[0;31m'
@@ -223,15 +223,37 @@ mkdir -p "$DESKTOP_DIR" 2>/dev/null || true
 echo -e "\n${BLUE}Extracting OmniCore application payload...${NC}"
 
 # Check if running as a self-extracting archive (payload appended after __ARCHIVE_FOLLOWS__)
-ARCHIVE_LINE=$(grep -a -n '^__ARCHIVE_FOLLOWS__' "$0" 2>/dev/null | cut -d: -f1 || true)
+ARCHIVE_LINE=$(grep -a -n '^__ARCHIVE_FOLLOWS__' "$0" 2>/dev/null | head -n 1 | cut -d: -f1 || true)
+HAS_EMBEDDED_PAYLOAD=0
 
 if [ -n "$ARCHIVE_LINE" ]; then
+  # Probe if there are at least 256 bytes of actual binary payload following the marker
+  PAYLOAD_SAMPLE=$(tail -n +$((ARCHIVE_LINE + 1)) "$0" 2>/dev/null | head -c 512 | wc -c || echo 0)
+  if [ "$PAYLOAD_SAMPLE" -ge 256 ]; then
+    HAS_EMBEDDED_PAYLOAD=1
+  fi
+fi
+
+if [ "$HAS_EMBEDDED_PAYLOAD" -eq 1 ]; then
   tail -n +$((ARCHIVE_LINE + 1)) "$0" | tar --overwrite -xz -C "$INSTALL_DIR" 2>/dev/null || tail -n +$((ARCHIVE_LINE + 1)) "$0" | tar -xz -C "$INSTALL_DIR"
 else
-  # Running from source/distribution directory
+  # Running from source/distribution directory or standalone install.sh
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  FOUND_TAR=""
+
   if [ -f "$SCRIPT_DIR/payload.tar.gz" ]; then
-    tar --overwrite -xz -f "$SCRIPT_DIR/payload.tar.gz" -C "$INSTALL_DIR" 2>/dev/null || tar -xz -f "$SCRIPT_DIR/payload.tar.gz" -C "$INSTALL_DIR"
+    FOUND_TAR="$SCRIPT_DIR/payload.tar.gz"
+  elif compgen -G "${SCRIPT_DIR}/OmniCore-Media-Engine-*-linux-x64.tar.gz" > /dev/null 2>&1; then
+    FOUND_TAR=$(ls -1 "${SCRIPT_DIR}"/OmniCore-Media-Engine-*-linux-x64.tar.gz | sort -V | tail -n 1)
+  elif compgen -G "${SCRIPT_DIR}/OmniCore-Media-Engine-Setup-*-linux-x64.sh" > /dev/null 2>&1; then
+    SETUP_SH=$(ls -1 "${SCRIPT_DIR}"/OmniCore-Media-Engine-Setup-*-linux-x64.sh | sort -V | tail -n 1)
+    if [ "$SETUP_SH" != "$0" ]; then
+      SETUP_LINE=$(grep -a -n '^__ARCHIVE_FOLLOWS__' "$SETUP_SH" 2>/dev/null | head -n 1 | cut -d: -f1 || true)
+      if [ -n "$SETUP_LINE" ]; then
+        tail -n +$((SETUP_LINE + 1)) "$SETUP_SH" | tar --overwrite -xz -C "$INSTALL_DIR" 2>/dev/null || tail -n +$((SETUP_LINE + 1)) "$SETUP_SH" | tar -xz -C "$INSTALL_DIR"
+        FOUND_TAR="extracted_from_sibling_setup"
+      fi
+    fi
   elif [ -d "$SCRIPT_DIR/../../engine-desktop/bin/Release/net8.0/linux-x64/publish" ]; then
     cp -r "$SCRIPT_DIR/../../engine-desktop/bin/Release/net8.0/linux-x64/publish/"* "$INSTALL_DIR/"
     if [ -d "$SCRIPT_DIR/../../dist" ]; then
@@ -242,13 +264,45 @@ else
     elif [ -f "$SCRIPT_DIR/../../OmniCore-Web-Assistant.crx" ]; then
       cp "$SCRIPT_DIR/../../OmniCore-Web-Assistant.crx" "$INSTALL_DIR/"
     fi
+    FOUND_TAR="copied_from_source"
+  fi
+
+  if [ -n "$FOUND_TAR" ] && [ "$FOUND_TAR" != "extracted_from_sibling_setup" ] && [ "$FOUND_TAR" != "copied_from_source" ]; then
+    tar --overwrite -xz -f "$FOUND_TAR" -C "$INSTALL_DIR" 2>/dev/null || tar -xz -f "$FOUND_TAR" -C "$INSTALL_DIR"
+  elif [ -z "$FOUND_TAR" ]; then
+    # Standalone script execution: download application payload automatically from GitHub Releases
+    echo -e "${CYAN}[INFO] Standalone script detected. Fetching OmniCore application payload from GitHub Releases...${NC}"
+    TAR_URL="https://github.com/KrSnaGit112/OCU/releases/download/v${VERSION}/OmniCore-Media-Engine-v${VERSION}-linux-x64.tar.gz"
+    TEMP_TAR="/tmp/omnicore_payload_${VERSION}_$$.tar.gz"
+
+    DOWNLOAD_SUCCESS=0
+    if command -v curl >/dev/null 2>&1; then
+      echo -e "${BLUE}Downloading package via curl...${NC}"
+      if curl -sSL -L "$TAR_URL" -o "$TEMP_TAR" --progress-bar; then
+        DOWNLOAD_SUCCESS=1
+      fi
+    elif command -v wget >/dev/null 2>&1; then
+      echo -e "${BLUE}Downloading package via wget...${NC}"
+      if wget -q --show-progress -O "$TEMP_TAR" "$TAR_URL"; then
+        DOWNLOAD_SUCCESS=1
+      fi
+    fi
+
+    if [ "$DOWNLOAD_SUCCESS" -eq 1 ] && [ -s "$TEMP_TAR" ]; then
+      echo -e "${GREEN}[OK] Download complete. Extracting payload to $INSTALL_DIR...${NC}"
+      tar --overwrite -xz -f "$TEMP_TAR" -C "$INSTALL_DIR" 2>/dev/null || tar -xz -f "$TEMP_TAR" -C "$INSTALL_DIR"
+      rm -f "$TEMP_TAR" 2>/dev/null || true
+    else
+      echo -e "${RED}[ERROR] Failed to download application payload from: $TAR_URL${NC}"
+      echo -e "${YELLOW}Please download OmniCore-Media-Engine-Setup-v${VERSION}-linux-x64.sh directly from:${NC}"
+      echo "  https://github.com/KrSnaGit112/OCU/releases/tag/v${VERSION}"
+      exit 1
+    fi
   fi
 fi
 
-# Ensure executable permissions and traversability across directories and shared libraries
-chmod 755 "$INSTALL_DIR" 2>/dev/null || true
-find "$INSTALL_DIR" -type d -exec chmod 755 {} + 2>/dev/null || true
-find "$INSTALL_DIR" -type f -name "*.so*" -exec chmod 755 {} + 2>/dev/null || true
+# Ensure world-readability and executable permissions across entire installation tree
+chmod -R a+rX "$INSTALL_DIR" 2>/dev/null || true
 if [ -f "$INSTALL_DIR/OmniCoreMediaEngine" ]; then
   chmod +x "$INSTALL_DIR/OmniCoreMediaEngine" 2>/dev/null || true
 fi
@@ -382,13 +436,23 @@ if [ -w "$DESKTOP_DIR" ] || [ ! -e "$DESKTOP_DIR" ]; then
   chmod 644 "$DESKTOP_DIR/omnicore.desktop" 2>/dev/null || true
 fi
 
+# Detect real login user (even when running under sudo)
+REAL_USER="${SUDO_USER:-$USER}"
+REAL_HOME=$(getent passwd "$REAL_USER" 2>/dev/null | cut -d: -f6 || echo "$HOME")
+REAL_HOME="${REAL_HOME:-$HOME}"
+
 # Also install to user's Desktop folder if present (Linux Mint / Cinnamon desktop)
-if [ -d "$HOME/Desktop" ] && [ -w "$HOME/Desktop" ]; then
-  rm -f "$HOME/Desktop/omnicore.desktop" 2>/dev/null || true
-  echo "$DESKTOP_ENTRY" > "$HOME/Desktop/omnicore.desktop" 2>/dev/null || true
-  chmod +x "$HOME/Desktop/omnicore.desktop" 2>/dev/null || true
-  gio set "$HOME/Desktop/omnicore.desktop" metadata::trusted true 2>/dev/null || true
-fi
+for target_desktop in "$REAL_HOME/Desktop" "$HOME/Desktop"; do
+  if [ -d "$target_desktop" ]; then
+    rm -f "$target_desktop/omnicore.desktop" 2>/dev/null || true
+    echo "$DESKTOP_ENTRY" > "$target_desktop/omnicore.desktop" 2>/dev/null || true
+    chmod +x "$target_desktop/omnicore.desktop" 2>/dev/null || true
+    if [ "$IS_ROOT" -eq 1 ] && [ -n "$SUDO_USER" ]; then
+      chown "$REAL_USER":"$REAL_USER" "$target_desktop/omnicore.desktop" 2>/dev/null || true
+    fi
+    gio set "$target_desktop/omnicore.desktop" metadata::trusted true 2>/dev/null || true
+  fi
+done
 
 # Symlink CLI binary safely
 if [ -w "$BIN_DIR" ] || [ ! -e "$BIN_DIR" ]; then
@@ -438,7 +502,11 @@ if [ "$IS_SILENT" -eq 0 ]; then
   launch_resp=${launch_resp:-Y}
   if [[ "$launch_resp" =~ ^[Yy]$ ]]; then
     echo "Launching OmniCore Media Engine..."
-    "$INSTALL_DIR/OmniCoreMediaEngine" >/dev/null 2>&1 &
+    if [ "$IS_ROOT" -eq 1 ] && [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
+      sudo -u "$SUDO_USER" DISPLAY="${DISPLAY:-:0}" XAUTHORITY="${XAUTHORITY:-$REAL_HOME/.Xauthority}" "$INSTALL_DIR/OmniCoreMediaEngine" >/dev/null 2>&1 &
+    else
+      "$INSTALL_DIR/OmniCoreMediaEngine" >/dev/null 2>&1 &
+    fi
   fi
 fi
 
