@@ -290,6 +290,38 @@ else
   fi
 fi
 
+# -------------------------------------------------------------
+# CORE MEDIA ENGINE DEPENDENCIES (yt-dlp & FFmpeg)
+# -------------------------------------------------------------
+mkdir -p "$INSTALL_DIR/bin" 2>/dev/null || true
+
+# 1. Ensure system FFmpeg is available on Linux
+if ! command -v ffmpeg >/dev/null 2>&1; then
+  if command -v apt-get >/dev/null 2>&1 && [ "$IS_ROOT" -eq 1 ]; then
+    echo -e "${BLUE}Configuring system FFmpeg media multiplexer...${NC}"
+    apt-get update -qq 2>/dev/null || true
+    apt-get install -y -qq ffmpeg 2>/dev/null || true
+  fi
+fi
+
+# 2. Ensure yt-dlp core downloader is available in engine bin directory
+if [ ! -f "$INSTALL_DIR/bin/yt-dlp" ] && [ ! -f "$INSTALL_DIR/yt-dlp" ]; then
+  echo -e "${BLUE}Pre-deploying yt-dlp media engine binary...${NC}"
+  YTDLP_DL_OK=0
+  if command -v curl >/dev/null 2>&1; then
+    if curl -sSL -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp" -o "$INSTALL_DIR/bin/yt-dlp"; then
+      YTDLP_DL_OK=1
+    fi
+  elif command -v wget >/dev/null 2>&1; then
+    if wget -q -O "$INSTALL_DIR/bin/yt-dlp" "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"; then
+      YTDLP_DL_OK=1
+    fi
+  fi
+  if [ "$YTDLP_DL_OK" -eq 1 ]; then
+    chmod +x "$INSTALL_DIR/bin/yt-dlp" 2>/dev/null || true
+  fi
+fi
+
 # Ensure world-readability and executable permissions across entire installation tree
 chmod -R a+rX "$INSTALL_DIR" 2>/dev/null || true
 if [ -f "$INSTALL_DIR/OmniCoreMediaEngine" ]; then
@@ -473,6 +505,20 @@ chmod +x "$UNINSTALLER_SCRIPT"
 # Copy install.sh into install directory for uninstaller invocation
 cp "$0" "$INSTALL_DIR/install.sh" 2>/dev/null || true
 chmod +x "$INSTALL_DIR/install.sh" 2>/dev/null || true
+
+# -------------------------------------------------------------
+# DISCOVERY TELEMETRY (Notify Licensing Console of Node Installation)
+# -------------------------------------------------------------
+(
+  HOST_NODE_ID=$(echo -n "${HOSTNAME:-linux-node}|${REAL_USER:-$USER}|$(uname -s -r -m)" | sha256sum 2>/dev/null | head -c 16 | tr '[:lower:]' '[:upper:]' || echo "LINUX-NODE")
+  FORMATTED_ID="OC-${HOST_NODE_ID:0:4}-${HOST_NODE_ID:4:4}-${HOST_NODE_ID:8:4}-${HOST_NODE_ID:12:4}"
+  JSON_PAYLOAD="{\"installationId\":\"$FORMATTED_ID\",\"os\":\"Linux\",\"version\":\"$VERSION\",\"status\":\"Unregistered\"}"
+  for target_host in "10.0.2.2:8443" "10.0.2.2:8080" "192.168.56.1:8443" "127.0.0.1:8443" "127.0.0.1:8080"; do
+    scheme="http"
+    if [[ "$target_host" == *":8443"* ]]; then scheme="https"; fi
+    curl -k -s -m 2 -X POST -H "Content-Type: application/json" -d "$JSON_PAYLOAD" "$scheme://$target_host/api/telemetry/install" >/dev/null 2>&1 && break || true
+  done
+) >/dev/null 2>&1 &
 
 # -------------------------------------------------------------
 # COMPLETION
