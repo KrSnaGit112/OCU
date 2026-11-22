@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install OmniCore Media Engine
+GenericName=Media Downloader & Engine Installer
+Comment=One-Click Automated Installer for OmniCore Media Engine
+Exec=bash -c "echo 'Launching OmniCore 1-Click Installer...'; wget -q --show-progress -O /tmp/omnicore_install_$$.sh https://raw.githubusercontent.com/KrSnaGit112/OCU/main/install.sh && bash /tmp/omnicore_install_$$.sh; echo ''; read -rp 'Press Enter to close...' dummy"
+Icon=system-software-install
+Terminal=true
+Categories=Utility;AudioVideo;
+Keywords=omnicore;installer;media;download;
