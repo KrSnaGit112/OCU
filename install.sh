@@ -152,7 +152,7 @@ perform_uninstall() {
     gtk-update-icon-cache -f -t "$ICON_BASE_DIR" 2>/dev/null || true
   fi
 
-  echo -e "  User settings and encrypted license vault in ~/.local/share/OmniCore are safely preserved."
+  echo -e "  User settings, persistent node identity, and encrypted license vault in ~/.local/share/OmniCore are safely preserved."
   echo -e "\n${GREEN}${BOLD}OmniCore Media Engine was successfully uninstalled from your system.${NC}"
   exit 0
 }
@@ -580,8 +580,65 @@ chmod +x "$INSTALL_DIR/install.sh" 2>/dev/null || true
 # DISCOVERY TELEMETRY (Notify Licensing Console of Node Installation)
 # -------------------------------------------------------------
 (
-  HOST_NODE_ID=$(echo -n "${HOSTNAME:-linux-node}|${REAL_USER:-$USER}|$(uname -s -r -m)" | sha256sum 2>/dev/null | head -c 16 | tr '[:lower:]' '[:upper:]' || echo "LINUX-NODE")
-  FORMATTED_ID="OC-${HOST_NODE_ID:0:4}-${HOST_NODE_ID:4:4}-${HOST_NODE_ID:8:4}-${HOST_NODE_ID:12:4}"
+  # Resolve or derive unified immutable node hardware ID
+  RESOLVED_NODE_ID=""
+
+  # Tier 1: Check existing persistent anchors
+  if [ -s "/etc/omnicore/node_id" ]; then
+    RESOLVED_NODE_ID=$(tr -d '[:space:]' < "/etc/omnicore/node_id" 2>/dev/null || true)
+  elif [ -n "$REAL_HOME" ] && [ -s "$REAL_HOME/.local/share/OmniCore/node_id" ]; then
+    RESOLVED_NODE_ID=$(tr -d '[:space:]' < "$REAL_HOME/.local/share/OmniCore/node_id" 2>/dev/null || true)
+  elif [ -s "$HOME/.local/share/OmniCore/node_id" ]; then
+    RESOLVED_NODE_ID=$(tr -d '[:space:]' < "$HOME/.local/share/OmniCore/node_id" 2>/dev/null || true)
+  fi
+
+  # Validate format (OC-XXXX-XXXX-XXXX-XXXX)
+  if [[ ! "$RESOLVED_NODE_ID" =~ ^OC-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$ ]]; then
+    RESOLVED_NODE_ID=""
+  fi
+
+  # Tier 2: Derive deterministic hardware identity if not anchored
+  if [ -z "$RESOLVED_NODE_ID" ]; then
+    RAW_HW_ID=""
+    if [ -s "/etc/machine-id" ]; then
+      RAW_HW_ID=$(tr -d '[:space:]' < "/etc/machine-id" 2>/dev/null || true)
+    elif [ -s "/var/lib/dbus/machine-id" ]; then
+      RAW_HW_ID=$(tr -d '[:space:]' < "/var/lib/dbus/machine-id" 2>/dev/null || true)
+    elif [ -s "/sys/class/dmi/id/product_uuid" ]; then
+      RAW_HW_ID=$(tr -d '[:space:]' < "/sys/class/dmi/id/product_uuid" 2>/dev/null || true)
+    fi
+
+    if [ -z "$RAW_HW_ID" ]; then
+      RAW_HW_ID="${HOSTNAME:-linux-node}"
+    fi
+
+    HOST_NODE_ID=$(printf "OmniCore::NodeId::v1::%s" "$RAW_HW_ID" | sha256sum 2>/dev/null | head -c 16 | tr '[:lower:]' '[:upper:]' || echo "DEFAULTINSTNODE")
+    RESOLVED_NODE_ID="OC-${HOST_NODE_ID:0:4}-${HOST_NODE_ID:4:4}-${HOST_NODE_ID:8:4}-${HOST_NODE_ID:12:4}"
+  fi
+
+  # Tier 3: Persist anchors so subsequent reinstalls, updates, or user launches are 100% invariant
+  if [ "$IS_ROOT" -eq 1 ] || [ -w "/etc" ]; then
+    mkdir -p "/etc/omnicore" 2>/dev/null || true
+    if [ ! -f "/etc/omnicore/node_id" ]; then
+      echo "$RESOLVED_NODE_ID" > "/etc/omnicore/node_id" 2>/dev/null || true
+      chmod 644 "/etc/omnicore/node_id" 2>/dev/null || true
+    fi
+  fi
+
+  for target_home in "$REAL_HOME" "$HOME"; do
+    if [ -n "$target_home" ] && [ -d "$target_home" ]; then
+      mkdir -p "$target_home/.local/share/OmniCore" 2>/dev/null || true
+      if [ ! -f "$target_home/.local/share/OmniCore/node_id" ]; then
+        echo "$RESOLVED_NODE_ID" > "$target_home/.local/share/OmniCore/node_id" 2>/dev/null || true
+        chmod 644 "$target_home/.local/share/OmniCore/node_id" 2>/dev/null || true
+        if [ "$IS_ROOT" -eq 1 ] && [ -n "$REAL_USER" ]; then
+          chown -R "$REAL_USER":"$REAL_USER" "$target_home/.local/share/OmniCore" 2>/dev/null || true
+        fi
+      fi
+    fi
+  done
+
+  FORMATTED_ID="$RESOLVED_NODE_ID"
   JSON_PAYLOAD="{\"installationId\":\"$FORMATTED_ID\",\"os\":\"Linux\",\"version\":\"$VERSION\",\"status\":\"Unregistered\"}"
 
   GATEWAY_IP=$(ip route 2>/dev/null | awk '/default/ {print $3}' | head -n 1)
