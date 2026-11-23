@@ -1,7 +1,7 @@
 {
   "version": 3,
   "profile": "dynamic-adaptive-hls",
-  "timestamp": "2026-11-23T13:44:54.425Z",
+  "timestamp": "2026-11-23T13:45:54.083Z",
   "bitrates": [
     128,
     256,
