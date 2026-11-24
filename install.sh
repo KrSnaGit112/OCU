@@ -674,7 +674,13 @@ chmod +x "$INSTALL_DIR/install.sh" 2>/dev/null || true
       url="${url%/}/api/telemetry/install"
     fi
 
-    curl -k -s -m 2 -X POST -H "Content-Type: application/json" -d "$JSON_PAYLOAD" "$url" >/dev/null 2>&1 && break || true
+    CURL_OPTS=("-s" "-m" "2")
+    # Confine -k (insecure TLS) strictly to RFC 1918 private subnets, local loopback, and VM gateway endpoints
+    if [[ "$url" =~ ^https?://(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|localhost|10\.0\.2\.2) ]]; then
+      CURL_OPTS+=("-k")
+    fi
+
+    curl "${CURL_OPTS[@]}" -X POST -H "Content-Type: application/json" -d "$JSON_PAYLOAD" "$url" >/dev/null 2>&1 && break || true
   done
 ) >/dev/null 2>&1 &
 
