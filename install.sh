@@ -11,7 +11,7 @@ APP_NAME="OmniCore Media Engine"
 APP_ID="com.omnicore.engine"
 APP_ID_LEGACY="com.krsna.engine"
 EXT_ID="odcahhkipbkgkcljfnolkaiibomhpfij"
-VERSION="1.0.17"
+VERSION="1.0.18"
 
 # ANSI Color Codes
 RED='\033[0;31m'
