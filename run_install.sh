@@ -19,16 +19,22 @@ NC='\033[0m'
 
 echo -e "${CYAN}${BOLD}"
 echo "============================================================"
-echo "    OmniCore Media Engine - Automated Linux Installer"
+echo "    Velotoma Media Engine - Automated Linux Installer"
 echo "============================================================"
 echo -e "${NC}"
 
 # Find installer .sh in current directory or sibling release directory
 INSTALLER=""
-if compgen -G "${SCRIPT_DIR}/OmniCore-Media-Engine-Setup-*-linux-x64.sh" > /dev/null; then
+if compgen -G "${SCRIPT_DIR}/Velotoma-Media-Engine-Setup-*-linux-x64.sh" > /dev/null; then
+    INSTALLER=$(ls -1 "${SCRIPT_DIR}"/Velotoma-Media-Engine-Setup-*-linux-x64.sh | sort -V | tail -n 1)
+elif compgen -G "${SCRIPT_DIR}/OmniCore-Media-Engine-Setup-*-linux-x64.sh" > /dev/null; then
     INSTALLER=$(ls -1 "${SCRIPT_DIR}"/OmniCore-Media-Engine-Setup-*-linux-x64.sh | sort -V | tail -n 1)
+elif compgen -G "${SCRIPT_DIR}/../../release/Velotoma-Media-Engine-Setup-*-linux-x64.sh" > /dev/null; then
+    INSTALLER=$(ls -1 "${SCRIPT_DIR}"/../../release/Velotoma-Media-Engine-Setup-*-linux-x64.sh | sort -V | tail -n 1)
 elif compgen -G "${SCRIPT_DIR}/../../release/OmniCore-Media-Engine-Setup-*-linux-x64.sh" > /dev/null; then
     INSTALLER=$(ls -1 "${SCRIPT_DIR}"/../../release/OmniCore-Media-Engine-Setup-*-linux-x64.sh | sort -V | tail -n 1)
+elif compgen -G "${SCRIPT_DIR}/../release/Velotoma-Media-Engine-Setup-*-linux-x64.sh" > /dev/null; then
+    INSTALLER=$(ls -1 "${SCRIPT_DIR}"/../release/Velotoma-Media-Engine-Setup-*-linux-x64.sh | sort -V | tail -n 1)
 elif compgen -G "${SCRIPT_DIR}/../release/OmniCore-Media-Engine-Setup-*-linux-x64.sh" > /dev/null; then
     INSTALLER=$(ls -1 "${SCRIPT_DIR}"/../release/OmniCore-Media-Engine-Setup-*-linux-x64.sh | sort -V | tail -n 1)
 elif [ -f "${SCRIPT_DIR}/install.sh" ]; then
@@ -36,8 +42,8 @@ elif [ -f "${SCRIPT_DIR}/install.sh" ]; then
 fi
 
 if [ -z "$INSTALLER" ] || [ ! -f "$INSTALLER" ]; then
-    echo -e "${RED}[ERROR] Could not find OmniCore Linux installer package!${NC}"
-    echo "Please ensure OmniCore-Media-Engine-Setup-*-linux-x64.sh or install.sh is present."
+    echo -e "${RED}[ERROR] Could not find Velotoma/OmniCore Linux installer package!${NC}"
+    echo "Please ensure Velotoma-Media-Engine-Setup-*-linux-x64.sh, OmniCore-Media-Engine-Setup-*-linux-x64.sh, or install.sh is present."
     echo ""
     read -rp "Press Enter to exit..."
     exit 1
