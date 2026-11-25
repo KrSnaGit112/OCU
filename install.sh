@@ -7,11 +7,11 @@
 
 set -e
 
-APP_NAME="OmniCore Media Engine"
-APP_ID="com.omnicore.engine"
-APP_ID_LEGACY="com.krsna.engine"
+APP_NAME="Velotoma Media Engine"
+APP_ID="com.velotoma.engine"
+APP_ID_LEGACY="com.omnicore.engine"
 EXT_ID="odcahhkipbkgkcljfnolkaiibomhpfij"
-VERSION="1.0.21"
+VERSION="1.0.24"
 
 # ANSI Color Codes
 RED='\033[0;31m'
@@ -111,16 +111,20 @@ perform_uninstall() {
   fi
 
   # 2. Remove Binary Symlink
-  if [ -L "$BIN_DIR/omnicore" ] || [ -f "$BIN_DIR/omnicore" ]; then
-    echo -e "  Removing: $BIN_DIR/omnicore"
-    rm -f "$BIN_DIR/omnicore"
-  fi
+  for bin_name in "velotoma" "omnicore"; do
+    if [ -L "$BIN_DIR/$bin_name" ] || [ -f "$BIN_DIR/$bin_name" ]; then
+      echo -e "  Removing: $BIN_DIR/$bin_name"
+      rm -f "$BIN_DIR/$bin_name"
+    fi
+  done
 
   # 3. Remove Desktop Launcher
-  if [ -f "$DESKTOP_DIR/omnicore.desktop" ]; then
-    echo -e "  Removing: $DESKTOP_DIR/omnicore.desktop"
-    rm -f "$DESKTOP_DIR/omnicore.desktop"
-  fi
+  for desk_name in "velotoma.desktop" "omnicore.desktop"; do
+    if [ -f "$DESKTOP_DIR/$desk_name" ]; then
+      echo -e "  Removing: $DESKTOP_DIR/$desk_name"
+      rm -f "$DESKTOP_DIR/$desk_name"
+    fi
+  done
 
   # 4. Remove Icons
   for size in 16 48 128 256 512; do
@@ -130,10 +134,10 @@ perform_uninstall() {
     fi
   done
 
-  # 5. Remove Native Messaging Manifests (both current & legacy com.krsna.engine)
+  # 5. Remove Native Messaging Manifests (Velotoma, OmniCore & KrSna compatibility aliases)
   for nat_dir in "$CHROME_NATIVE_DIR" "$BRAVE_NATIVE_DIR" "$CHROMIUM_NATIVE_DIR" "$EDGE_NATIVE_DIR"; do
     if [ -d "$nat_dir" ]; then
-      rm -f "$nat_dir/$APP_ID.json" "$nat_dir/$APP_ID_LEGACY.json" "$nat_dir/com.krsna.enhancer.json"
+      rm -f "$nat_dir/$APP_ID.json" "$nat_dir/$APP_ID_LEGACY.json" "$nat_dir/com.krsna.engine.json" "$nat_dir/com.krsna.enhancer.json"
     fi
   done
 
@@ -261,19 +265,20 @@ else
     tar --overwrite -xz -f "$FOUND_TAR" -C "$INSTALL_DIR" 2>/dev/null || tar -xz -f "$FOUND_TAR" -C "$INSTALL_DIR"
   elif [ -z "$FOUND_TAR" ]; then
     # Standalone script execution: download application payload automatically from GitHub Releases
-    echo -e "${CYAN}[INFO] Standalone script detected. Fetching OmniCore application payload from GitHub Releases...${NC}"
-    TAR_URL="https://github.com/KrSnaGit112/OCU/releases/download/v${VERSION}/OmniCore-Media-Engine-v${VERSION}-linux-x64.tar.gz"
-    TEMP_TAR="/tmp/omnicore_payload_${VERSION}_$$.tar.gz"
+    echo -e "${CYAN}[INFO] Standalone script detected. Fetching application payload from GitHub Releases...${NC}"
+    TAR_URL="https://github.com/KrSnaGit112/OCU/releases/download/v${VERSION}/Velotoma-Media-Engine-v${VERSION}-linux-x64.tar.gz"
+    TAR_URL_FALLBACK="https://github.com/KrSnaGit112/OCU/releases/download/v${VERSION}/OmniCore-Media-Engine-v${VERSION}-linux-x64.tar.gz"
+    TEMP_TAR="/tmp/velotoma_payload_${VERSION}_$$.tar.gz"
 
     DOWNLOAD_SUCCESS=0
     if command -v curl >/dev/null 2>&1; then
       echo -e "${BLUE}Downloading package via curl...${NC}"
-      if curl -sSL -L "$TAR_URL" -o "$TEMP_TAR" --progress-bar; then
+      if curl -sSL -L "$TAR_URL" -o "$TEMP_TAR" --progress-bar || curl -sSL -L "$TAR_URL_FALLBACK" -o "$TEMP_TAR" --progress-bar; then
         DOWNLOAD_SUCCESS=1
       fi
     elif command -v wget >/dev/null 2>&1; then
       echo -e "${BLUE}Downloading package via wget...${NC}"
-      if wget -q --show-progress -O "$TEMP_TAR" "$TAR_URL"; then
+      if wget -q --show-progress -O "$TEMP_TAR" "$TAR_URL" || wget -q --show-progress -O "$TEMP_TAR" "$TAR_URL_FALLBACK"; then
         DOWNLOAD_SUCCESS=1
       fi
     fi
@@ -407,8 +412,8 @@ EXEC_ESC_PATH="$INSTALL_DIR/OmniCoreMediaEngine"
 
 MANIFEST_PRIMARY=$(cat <<EOF
 {
-  "name": "com.omnicore.engine",
-  "description": "OmniCore Media Engine Native Host",
+  "name": "com.velotoma.engine",
+  "description": "Velotoma Media Engine Native Host",
   "path": "$EXEC_ESC_PATH",
   "type": "stdio",
   "allowed_origins": [
@@ -420,8 +425,21 @@ EOF
 
 MANIFEST_LEGACY=$(cat <<EOF
 {
+  "name": "com.omnicore.engine",
+  "description": "Velotoma Media Engine Native Host (Compatibility Alias)",
+  "path": "$EXEC_ESC_PATH",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://$EXT_ID/"
+  ]
+}
+EOF
+)
+
+MANIFEST_KRSNA=$(cat <<EOF
+{
   "name": "com.krsna.engine",
-  "description": "OmniCore Media Engine Native Host (Compatibility Alias)",
+  "description": "Velotoma Media Engine Native Host (Legacy Compatibility Alias)",
   "path": "$EXEC_ESC_PATH",
   "type": "stdio",
   "allowed_origins": [
@@ -436,10 +454,11 @@ for nat_dir in "$CHROME_NATIVE_DIR" "$BRAVE_NATIVE_DIR" "$CHROMIUM_NATIVE_DIR" "
   if [ -n "$nat_dir" ]; then
     mkdir -p "$nat_dir" 2>/dev/null || true
     if [ -w "$nat_dir" ]; then
-      rm -f "$nat_dir/$APP_ID.json" "$nat_dir/$APP_ID_LEGACY.json" "$nat_dir/com.krsna.enhancer.json" 2>/dev/null || true
+      rm -f "$nat_dir/$APP_ID.json" "$nat_dir/$APP_ID_LEGACY.json" "$nat_dir/com.krsna.engine.json" "$nat_dir/com.krsna.enhancer.json" 2>/dev/null || true
       echo "$MANIFEST_PRIMARY" > "$nat_dir/$APP_ID.json" 2>/dev/null || true
       echo "$MANIFEST_LEGACY" > "$nat_dir/$APP_ID_LEGACY.json" 2>/dev/null || true
-      chmod 644 "$nat_dir/$APP_ID.json" "$nat_dir/$APP_ID_LEGACY.json" 2>/dev/null || true
+      echo "$MANIFEST_KRSNA" > "$nat_dir/com.krsna.engine.json" 2>/dev/null || true
+      chmod 644 "$nat_dir/$APP_ID.json" "$nat_dir/$APP_ID_LEGACY.json" "$nat_dir/com.krsna.engine.json" 2>/dev/null || true
     fi
   fi
 done
@@ -449,12 +468,16 @@ done
 # -------------------------------------------------------------
 echo -e "${BLUE}Configuring browser extension auto-detection...${NC}"
 
-if [ -f "$INSTALL_DIR/OmniCore-Web-Assistant-v$VERSION.crx" ]; then
+if [ -f "$INSTALL_DIR/Velotoma-Web-Assistant-v$VERSION.crx" ]; then
+  CRX_PATH="$INSTALL_DIR/Velotoma-Web-Assistant-v$VERSION.crx"
+elif [ -f "$INSTALL_DIR/Velotoma-Web-Assistant.crx" ]; then
+  CRX_PATH="$INSTALL_DIR/Velotoma-Web-Assistant.crx"
+elif [ -f "$INSTALL_DIR/OmniCore-Web-Assistant-v$VERSION.crx" ]; then
   CRX_PATH="$INSTALL_DIR/OmniCore-Web-Assistant-v$VERSION.crx"
 elif [ -f "$INSTALL_DIR/OmniCore-Web-Assistant.crx" ]; then
   CRX_PATH="$INSTALL_DIR/OmniCore-Web-Assistant.crx"
 else
-  CRX_PATH="$INSTALL_DIR/OmniCore-Web-Assistant-v$VERSION.crx"
+  CRX_PATH="$INSTALL_DIR/Velotoma-Web-Assistant-v$VERSION.crx"
 fi
   EXT_JSON=$(cat <<EOF
 {
@@ -506,7 +529,7 @@ DESKTOP_ENTRY=$(cat <<EOF
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=OmniCore Media Engine
+Name=Velotoma Media Engine
 GenericName=Media Downloader & Engine
 Comment=Modern High-Performance Media Downloader, Processor & Web Assistant
 Exec=$INSTALL_DIR/OmniCoreMediaEngine %U
@@ -515,16 +538,17 @@ Icon=omnicore
 Terminal=false
 StartupNotify=true
 Categories=AudioVideo;Audio;Video;Network;FileTransfer;
-MimeType=x-scheme-handler/omnicore;
-Keywords=media;download;video;audio;youtube;stream;enhancer;omnicore;
+MimeType=x-scheme-handler/velotoma;x-scheme-handler/omnicore;
+Keywords=media;download;video;audio;youtube;stream;enhancer;velotoma;omnicore;
 EOF
 )
 
 if [ -w "$DESKTOP_DIR" ] || [ ! -e "$DESKTOP_DIR" ]; then
   mkdir -p "$DESKTOP_DIR" 2>/dev/null || true
-  rm -f "$DESKTOP_DIR/omnicore.desktop" 2>/dev/null || true
+  rm -f "$DESKTOP_DIR/velotoma.desktop" "$DESKTOP_DIR/omnicore.desktop" 2>/dev/null || true
+  echo "$DESKTOP_ENTRY" > "$DESKTOP_DIR/velotoma.desktop" 2>/dev/null || true
   echo "$DESKTOP_ENTRY" > "$DESKTOP_DIR/omnicore.desktop" 2>/dev/null || true
-  chmod 644 "$DESKTOP_DIR/omnicore.desktop" 2>/dev/null || true
+  chmod 644 "$DESKTOP_DIR/velotoma.desktop" "$DESKTOP_DIR/omnicore.desktop" 2>/dev/null || true
 fi
 
 # Detect real login user (even when running under sudo)
@@ -535,12 +559,14 @@ REAL_HOME="${REAL_HOME:-$HOME}"
 # Also install to user's Desktop folder if present (Linux Mint / Cinnamon desktop)
 for target_desktop in "$REAL_HOME/Desktop" "$HOME/Desktop"; do
   if [ -d "$target_desktop" ]; then
-    rm -f "$target_desktop/omnicore.desktop" 2>/dev/null || true
+    rm -f "$target_desktop/velotoma.desktop" "$target_desktop/omnicore.desktop" 2>/dev/null || true
+    echo "$DESKTOP_ENTRY" > "$target_desktop/velotoma.desktop" 2>/dev/null || true
     echo "$DESKTOP_ENTRY" > "$target_desktop/omnicore.desktop" 2>/dev/null || true
-    chmod +x "$target_desktop/omnicore.desktop" 2>/dev/null || true
+    chmod +x "$target_desktop/velotoma.desktop" "$target_desktop/omnicore.desktop" 2>/dev/null || true
     if [ "$IS_ROOT" -eq 1 ] && [ -n "$SUDO_USER" ]; then
-      chown "$REAL_USER":"$REAL_USER" "$target_desktop/omnicore.desktop" 2>/dev/null || true
+      chown "$REAL_USER":"$REAL_USER" "$target_desktop/velotoma.desktop" "$target_desktop/omnicore.desktop" 2>/dev/null || true
     fi
+    gio set "$target_desktop/velotoma.desktop" metadata::trusted true 2>/dev/null || true
     gio set "$target_desktop/omnicore.desktop" metadata::trusted true 2>/dev/null || true
   fi
 done
@@ -548,7 +574,8 @@ done
 # Symlink CLI binary safely
 if [ -w "$BIN_DIR" ] || [ ! -e "$BIN_DIR" ]; then
   mkdir -p "$BIN_DIR" 2>/dev/null || true
-  rm -f "$BIN_DIR/omnicore" 2>/dev/null || true
+  rm -f "$BIN_DIR/velotoma" "$BIN_DIR/omnicore" 2>/dev/null || true
+  ln -sf "$INSTALL_DIR/OmniCoreMediaEngine" "$BIN_DIR/velotoma" 2>/dev/null || true
   ln -sf "$INSTALL_DIR/OmniCoreMediaEngine" "$BIN_DIR/omnicore" 2>/dev/null || true
 fi
 
@@ -688,19 +715,19 @@ chmod +x "$INSTALL_DIR/install.sh" 2>/dev/null || true
 # COMPLETION
 # -------------------------------------------------------------
 echo -e "\n${GREEN}${BOLD}=========================================================="
-echo "    OmniCore Media Engine has been successfully installed!"
+echo "    Velotoma Media Engine has been successfully installed!"
 echo "==========================================================${NC}"
 echo -e "Installation path: ${BOLD}$INSTALL_DIR${NC}"
-echo -e "Command line:      ${BOLD}omnicore${NC}"
-echo -e "Desktop menu:      Applications -> Audio & Video -> OmniCore Media Engine"
+echo -e "Command line:      ${BOLD}velotoma${NC} (or ${BOLD}omnicore${NC})"
+echo -e "Desktop menu:      Applications -> Audio & Video -> Velotoma Media Engine"
 echo -e "Uninstaller:       ${BOLD}$INSTALL_DIR/uninstall.sh${NC}"
 echo ""
 
 if [ "$IS_SILENT" -eq 0 ]; then
-  read -p "Would you like to launch OmniCore Media Engine now? [Y/n] " launch_resp
+  read -p "Would you like to launch Velotoma Media Engine now? [Y/n] " launch_resp
   launch_resp=${launch_resp:-Y}
   if [[ "$launch_resp" =~ ^[Yy]$ ]]; then
-    echo "Launching OmniCore Media Engine..."
+    echo "Launching Velotoma Media Engine..."
     if [ "$IS_ROOT" -eq 1 ] && [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
       sudo -u "$SUDO_USER" DISPLAY="${DISPLAY:-:0}" XAUTHORITY="${XAUTHORITY:-$REAL_HOME/.Xauthority}" "$INSTALL_DIR/OmniCoreMediaEngine" >/dev/null 2>&1 &
     else
