@@ -59,7 +59,7 @@ done
 # Detect Permissions & Default Paths
 if [ "$(id -u)" -eq 0 ]; then
   IS_ROOT=1
-  DEFAULT_DIR="/opt/omnicore"
+  DEFAULT_DIR="/opt/velotoma"
   BIN_DIR="/usr/local/bin"
   DESKTOP_DIR="/usr/share/applications"
   ICON_BASE_DIR="/usr/share/icons/hicolor"
@@ -207,7 +207,7 @@ mkdir -p "$INSTALL_DIR" 2>/dev/null || true
 if [ ! -w "$INSTALL_DIR" ]; then
   if [ "$IS_ROOT" -eq 0 ]; then
     echo -e "${YELLOW}[WARN] Target $INSTALL_DIR is not writable by current user.${NC}"
-    INSTALL_DIR="$HOME/.local/share/omnicore"
+    INSTALL_DIR="$HOME/.local/share/velotoma"
     BIN_DIR="$HOME/.local/bin"
     DESKTOP_DIR="$HOME/.local/share/applications"
     ICON_BASE_DIR="$HOME/.local/share/icons/hicolor"
