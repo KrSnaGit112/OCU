@@ -11,7 +11,7 @@ APP_NAME="Velotoma Media Engine"
 APP_ID="com.velotoma.engine"
 APP_ID_LEGACY="com.omnicore.engine"
 EXT_ID="odcahhkipbkgkcljfnolkaiibomhpfij"
-VERSION="1.0.32"
+VERSION="1.0.35"
 
 # ANSI Color Codes
 RED='\033[0;31m'
