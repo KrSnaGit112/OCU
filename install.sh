@@ -100,7 +100,7 @@ perform_uninstall() {
   echo -e "${YELLOW}${BOLD}Uninstalling ${APP_NAME}...${NC}"
 
   # Terminate running engine processes
-  pkill -f "OmniCoreMediaEngine" || true
+  pkill -f "VelotomaMediaEngine" || true
   pkill -f "engine-winui" || true
   pkill -f "KrSnaEngine" || true
 
@@ -194,7 +194,7 @@ fi
 # -------------------------------------------------------------
 # TERMINATE RUNNING INSTANCES
 # -------------------------------------------------------------
-pkill -f "OmniCoreMediaEngine" || true
+pkill -f "VelotomaMediaEngine" || true
 pkill -f "engine-winui" || true
 pkill -f "KrSnaEngine" || true
 
@@ -399,8 +399,8 @@ fi
 
 # Ensure world-readability and executable permissions across entire installation tree
 chmod -R a+rX "$INSTALL_DIR" 2>/dev/null || true
-if [ -f "$INSTALL_DIR/OmniCoreMediaEngine" ]; then
-  chmod +x "$INSTALL_DIR/OmniCoreMediaEngine" 2>/dev/null || true
+if [ -f "$INSTALL_DIR/VelotomaMediaEngine" ]; then
+  chmod +x "$INSTALL_DIR/VelotomaMediaEngine" 2>/dev/null || true
 fi
 
 # -------------------------------------------------------------
@@ -408,7 +408,7 @@ fi
 # -------------------------------------------------------------
 echo -e "${BLUE}Registering Native Messaging Hosts for Chromium, Chrome, Brave & Edge...${NC}"
 
-EXEC_ESC_PATH="$INSTALL_DIR/OmniCoreMediaEngine"
+EXEC_ESC_PATH="$INSTALL_DIR/VelotomaMediaEngine"
 
 MANIFEST_PRIMARY=$(cat <<EOF
 {
@@ -532,7 +532,7 @@ Type=Application
 Name=Velotoma Media Engine
 GenericName=Media Downloader & Engine
 Comment=Modern High-Performance Media Downloader, Processor & Web Assistant
-Exec=$INSTALL_DIR/OmniCoreMediaEngine %U
+Exec=$INSTALL_DIR/VelotomaMediaEngine %U
 Path=$INSTALL_DIR
 Icon=omnicore
 Terminal=false
@@ -575,8 +575,8 @@ done
 if [ -w "$BIN_DIR" ] || [ ! -e "$BIN_DIR" ]; then
   mkdir -p "$BIN_DIR" 2>/dev/null || true
   rm -f "$BIN_DIR/velotoma" "$BIN_DIR/omnicore" 2>/dev/null || true
-  ln -sf "$INSTALL_DIR/OmniCoreMediaEngine" "$BIN_DIR/velotoma" 2>/dev/null || true
-  ln -sf "$INSTALL_DIR/OmniCoreMediaEngine" "$BIN_DIR/omnicore" 2>/dev/null || true
+  ln -sf "$INSTALL_DIR/VelotomaMediaEngine" "$BIN_DIR/velotoma" 2>/dev/null || true
+  ln -sf "$INSTALL_DIR/VelotomaMediaEngine" "$BIN_DIR/omnicore" 2>/dev/null || true
 fi
 
 # Update desktop and icon databases
@@ -729,9 +729,9 @@ if [ "$IS_SILENT" -eq 0 ]; then
   if [[ "$launch_resp" =~ ^[Yy]$ ]]; then
     echo "Launching Velotoma Media Engine..."
     if [ "$IS_ROOT" -eq 1 ] && [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
-      sudo -u "$SUDO_USER" DISPLAY="${DISPLAY:-:0}" XAUTHORITY="${XAUTHORITY:-$REAL_HOME/.Xauthority}" "$INSTALL_DIR/OmniCoreMediaEngine" >/dev/null 2>&1 &
+      sudo -u "$SUDO_USER" DISPLAY="${DISPLAY:-:0}" XAUTHORITY="${XAUTHORITY:-$REAL_HOME/.Xauthority}" "$INSTALL_DIR/VelotomaMediaEngine" >/dev/null 2>&1 &
     else
-      "$INSTALL_DIR/OmniCoreMediaEngine" >/dev/null 2>&1 &
+      "$INSTALL_DIR/VelotomaMediaEngine" >/dev/null 2>&1 &
     fi
   fi
 fi
