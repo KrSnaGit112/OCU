@@ -11,6 +11,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$prevProgressPreference = $ProgressPreference
+$ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 Write-Host ""
@@ -55,8 +57,15 @@ $downloadUrl = if ($pkg.url -match '^https?://') {
 $tempExe = Join-Path $env:TEMP "Velotoma_Setup_${version}_$([System.Guid]::NewGuid().ToString('N').Substring(0,6)).exe"
 
 try {
-    Write-Host "[INFO] Downloading $fileName (v$version)..." -ForegroundColor Cyan
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $tempExe -UseBasicParsing -TimeoutSec 180
+    $sizeMb = if ($pkg.size) { " ($([Math]::Round($pkg.size / 1MB, 1)) MB)" } else { "" }
+    Write-Host "[INFO] Downloading $fileName (v$version)$sizeMb..." -ForegroundColor Cyan
+    $wc = New-Object System.Net.WebClient
+    $wc.Headers.Add('User-Agent', 'Velotoma-Windows-Installer/1.0')
+    try {
+        $wc.DownloadFile($downloadUrl, $tempExe)
+    } finally {
+        $wc.Dispose()
+    }
 
     if (-not (Test-Path $tempExe)) {
         throw "Download failed: temporary setup file missing."
@@ -91,6 +100,7 @@ try {
     }
 }
 finally {
+    $ProgressPreference = $prevProgressPreference
     if (Test-Path $tempExe) {
         Remove-Item $tempExe -Force -ErrorAction SilentlyContinue
     }
