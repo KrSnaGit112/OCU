@@ -1,6 +1,6 @@
 {
-  "version": "1.0.43",
-  "releaseDate": "2026-11-27T12:31:16.009Z",
+  "version": "1.0.44",
+  "releaseDate": "2026-11-27T15:20:04.862Z",
   "changelog": [
     "Spectral vocal isolation with FFT denoising, formant EQ & speech gating",
     "Cross-platform Linux binary discovery and Linux-native engine updater parity",
@@ -10,30 +10,30 @@
   ],
   "platforms": {
     "windows": {
-      "fileName": "Velotoma-Media-Engine-Setup-v1.0.43.exe",
-      "url": "Velotoma-Media-Engine-Setup-v1.0.43.exe",
-      "sha256": "81f0ccb004552ed5cd47ac7d0b27b32972a94bc481fcf0e1a74d0c6f28e6d94b",
-      "size": 50713537
+      "fileName": "Velotoma-Media-Engine-Setup-v1.0.44.exe",
+      "url": "Velotoma-Media-Engine-Setup-v1.0.44.exe",
+      "sha256": "1e931b27886872c1052745882cced84c88d5f6960e6b25a115418a85f3e1cfb0",
+      "size": 50713575
     },
     "windows_dev": {
-      "fileName": "Velotoma-Media-Engine-Dev-Setup-v1.0.43.exe",
-      "url": "Velotoma-Media-Engine-Dev-Setup-v1.0.43.exe",
-      "sha256": "647e2dfc2d834749271533ca883dadb1c399cdea2adbf7c1c8edfc3c868f482a",
-      "size": 50713769
+      "fileName": "Velotoma-Media-Engine-Dev-Setup-v1.0.44.exe",
+      "url": "Velotoma-Media-Engine-Dev-Setup-v1.0.44.exe",
+      "sha256": "a23fe73bd1a0172f579eb9e72412604801b2d661aabaf779cc8c2bd7bb41d5b6",
+      "size": 50713786
     },
     "linux": {
-      "fileName": "Velotoma-Media-Engine-Setup-v1.0.43-linux-x64.sh",
-      "url": "Velotoma-Media-Engine-Setup-v1.0.43-linux-x64.sh",
-      "sha256": "135a10dbdf42fb98729147809fc02e96d2ff6893be754cdddb8e9f5f81125c56",
-      "size": 52711033
+      "fileName": "Velotoma-Media-Engine-Setup-v1.0.44-linux-x64.sh",
+      "url": "Velotoma-Media-Engine-Setup-v1.0.44-linux-x64.sh",
+      "sha256": "46eafef54c01b26743ba352c860ac7631c93633e8cd24c385f141e72e029ff40",
+      "size": 52711000
     }
   },
   "extension": {
     "id": "odcahhkipbkgkcljfnolkaiibomhpfij",
-    "version": "1.0.43",
-    "fileName": "Velotoma-Web-Assistant-v1.0.43.crx",
-    "url": "Velotoma-Web-Assistant-v1.0.43.crx",
-    "sha256": "f4631861267a7f7cf5b1a370ee9eecedd86aeb0e8581084c8d0c9533da74e8c4",
+    "version": "1.0.44",
+    "fileName": "Velotoma-Web-Assistant-v1.0.44.crx",
+    "url": "Velotoma-Web-Assistant-v1.0.44.crx",
+    "sha256": "c96e531e80b6b1e67d3763713266628c5d445612bb799d48261867e417d677ce",
     "size": 746309
   }
 }
