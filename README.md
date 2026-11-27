@@ -1,6 +1,29 @@
-# OmniCore Updates & Releases (OCU)
+# Velotoma Updates & Releases (OCU)
 
-Official public release and distribution channel for **OmniCore Media Engine**.
+Official public release and distribution channel for **Velotoma Media Engine** & **Velotoma Web Assistant**.
+
+---
+
+## 🪟 Windows Installation (3 Simple Ways)
+
+### 1. 1-Line PowerShell Command (Recommended)
+Open **PowerShell** or **Windows Terminal** and run:
+
+```powershell
+irm https://raw.githubusercontent.com/KrSnaGit112/OCU/main/install.ps1 | iex
+```
+*(Automatically fetches the latest release manifest, verifies SHA-256 checksum, and installs cleanly.)*
+
+---
+
+### 2. Double-Click Command Runner (`run_install.cmd`)
+1. Download [run_install.cmd](https://raw.githubusercontent.com/KrSnaGit112/OCU/main/run_install.cmd).
+2. Double-click `run_install.cmd` (works both alongside a downloaded `.exe` or standalone via PowerShell bootstrapper).
+
+---
+
+### 3. Direct Graphical Wizard (`.exe`)
+Download `Velotoma-Media-Engine-Setup-v*.exe` directly from **[Latest Releases](https://github.com/KrSnaGit112/OCU/releases/latest)** and run the installer wizard.
 
 ---
 
@@ -38,6 +61,7 @@ bash quick-install.sh
 | Package | Platform | Format | Description |
 | :--- | :--- | :--- | :--- |
 | **Windows Master Setup** | Windows x64 | `.exe` | Single-file graphical wizard |
+| **Windows 1-Click Script** | Windows x64 | `.ps1` / `.cmd` | Verified automated Windows runner (`install.ps1` / `run_install.cmd`) |
 | **Linux Setup Bundle** | Linux x64 | `.sh` | Standalone offline self-extracting archive |
 | **Linux Tarball** | Linux x64 | `.tar.gz` | Portable application archive |
 | **Web Assistant Companion** | All | `.crx` | Cryptographically signed browser extension |
